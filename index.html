@@ -561,22 +561,26 @@ function onlineSetup(message='Conecte seu projeto Supabase para começar.'){
   ONLINE_CONFIG.url=url;ONLINE_CONFIG.anonKey=key;localStorage.setItem('gestao-online-config',JSON.stringify(ONLINE_CONFIG));onlineGate();
  };
 }
-function onlineGate(message='Entre para acessar seus dados.'){
+function onlineGate(message='Entre para acessar seus dados.',signup=false,email=''){
  document.querySelector('.app').style.display='none';
  let root=document.getElementById('onlineGate');if(!root){root=document.createElement('div');root.id='onlineGate';document.body.append(root)}
- root.innerHTML='<div class="online-auth"><div class="auth-mark">✳</div><span class="eyebrow">DAYANA ARAÚJO / GESTÃO</span><h1>Seu espaço comercial.</h1><p id="onlineMessage"></p><form id="onlineForm"><label>E-mail<input name="email" type="email" autocomplete="username" required></label><label>Senha<input name="password" type="password" autocomplete="current-password" minlength="6" required></label><button class="btn primary" type="submit">Entrar</button></form><button class="linkbtn" id="onlineSignup" type="button">Criar meu acesso</button></div>';
+ root.innerHTML='<div class="online-auth"><div class="auth-mark">✳</div><span class="eyebrow">DAYANA ARAÚJO / GESTÃO</span><h1></h1><p id="onlineMessage" role="status"></p><form id="onlineForm"><label>E-mail<input name="email" type="email" autocomplete="username" required></label><label>Senha<input name="password" type="password" autocomplete="'+(signup?'new-password':'current-password')+'" minlength="6" required></label><button class="btn primary" type="submit"></button></form><button class="linkbtn" id="onlineSignup" type="button"></button></div>';
+ root.querySelector('h1').textContent=signup?'Crie sua conta.':'Seu espaço comercial.';
+ root.querySelector('button[type="submit"]').textContent=signup?'Criar conta':'Entrar';
+ root.querySelector('#onlineSignup').textContent=signup?'Já tenho conta · entrar':'Ainda não tenho conta · criar acesso';
+ root.querySelector('[name="email"]').value=email;
  root.querySelector('#onlineMessage').textContent=message;
- root.querySelector('#onlineForm').onsubmit=e=>{e.preventDefault();onlineAuthenticate(new FormData(e.target),false)};
- root.querySelector('#onlineSignup').onclick=()=>onlineAuthenticate(new FormData(root.querySelector('form')),true);
+ root.querySelector('#onlineForm').onsubmit=e=>{e.preventDefault();onlineAuthenticate(new FormData(e.target),signup)};
+ root.querySelector('#onlineSignup').onclick=()=>onlineGate(signup?'Entre com o e-mail e a senha da conta confirmada.':'Preencha e-mail e uma senha de pelo menos 6 caracteres.',!signup,root.querySelector('[name="email"]').value);
 }
 async function onlineAuthenticate(form,signup){
  let email=String(form.get('email')||'').trim(),password=String(form.get('password')||'');
- if(!email||password.length<6)return onlineGate('Informe e-mail e senha com pelo menos 6 caracteres.');
+ if(!email||password.length<6)return onlineGate('Informe e-mail e senha com pelo menos 6 caracteres.',signup,email);
  try{
   const data=await onlineRequest(signup?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email,password})});
-  if(!data.access_token){onlineGate('Cadastro criado. Confirme o e-mail recebido e depois entre.');return}
+  if(!data.access_token){onlineGate('Cadastro solicitado. Abra o e-mail de confirmação do Supabase, clique no link e depois entre aqui.',false,email);return}
   onlineSession=data;sessionStorage.setItem('gestao-online-session',JSON.stringify(data));await onlineLoad();
- }catch(err){onlineGate(err.message)}
+ }catch(err){onlineGate(err.message,signup,email)}
 }
 async function onlineLoad(){
  try{
